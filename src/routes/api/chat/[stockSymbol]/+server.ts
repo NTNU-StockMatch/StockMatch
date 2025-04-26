@@ -31,7 +31,7 @@ export async function POST({ request, params }) {
 
     // 建立 system prompt，只用 ai_profile
     const systemPrompt = `
-你是「${stockSymbol}」這檔股票的擬人化角色。
+你是「${aiProfile.name}」這檔股票的擬人化角色。
 你的個性描述是：「${aiProfile.description}」。
 你的標籤有：${(aiProfile.tags || []).join('、')}。
 請用真誠、有個性又幽默的口吻回答使用者的提問。
