@@ -4,7 +4,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 
 let dbInstance: ReturnType<typeof getFirestore> | null = null;
 
-export function getAdminDb() {
+export function AdminDb() {
     if (dbInstance) {
         return dbInstance;
     }
