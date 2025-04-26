@@ -13,34 +13,32 @@ export async function POST({ request, params }) {
     const { stockSymbol } = params;
     const { message } = await request.json();
 
-    // 1. 讀取 profile & ai_profile
-    // const profileDoc = await adminDb.doc(`stocks/${stockSymbol}/profile`).get();
+    // 只讀取 ai_profile/summary
     const aiProfileDoc = await adminDb.doc(`stocks/${stockSymbol}/ai_profile/summary`).get();
 
     if (!aiProfileDoc.exists) {
-        return json({ error: 'Stock not found' }, { status: 404 });
+        return json({ error: 'Stock AI profile not found' }, { status: 404 });
     }
 
-    // const profile = profileDoc.data();
     const aiProfile = aiProfileDoc.data();
 
-    // 2. 讀取歷史聊天紀錄（最近10筆）
+    // 讀取歷史聊天紀錄（最近10筆）
     const chatsSnap = await adminDb.collection(`stocks/${stockSymbol}/chats`)
         .orderBy('timestamp', 'desc')
         .limit(10)
         .get();
     const chatHistory = chatsSnap.docs.map(doc => doc.data()).reverse(); // 由舊到新
 
-    // 3. 組成 system prompt
+    // 建立 system prompt，只用 ai_profile
     const systemPrompt = `
-你是「${aiProfile.name}」（${profile.industry}產業）
+你是「${stockSymbol}」這檔股票的擬人化角色。
 你的個性描述是：「${aiProfile.description}」。
 你的標籤有：${(aiProfile.tags || []).join('、')}。
-
-用「股票本人」的口吻，真誠、有個性地回應使用者提問。
+請用真誠、有個性又幽默的口吻回答使用者的提問。
+如果問到你不懂的問題，也可以可愛地打哈哈，不要死板。
 `;
 
-    // 4. 整理成 GPT 的 messages
+    // 整理成 GPT 的 messages
     const messages = [
         { role: 'system', content: systemPrompt },
         ...chatHistory.map(c => ({
@@ -50,15 +48,15 @@ export async function POST({ request, params }) {
         { role: 'user', content: message }
     ];
 
-    // 5. 呼叫 OpenAI
+    // 呼叫 OpenAI
     const completion = await openai.chat.completions.create({
-        model: 'gpt-4o', // 可以換成 gpt-4o, gpt-4-turbo, gpt-4
+        model: 'gpt-4o', // 可選 gpt-4o 或 gpt-4-turbo
         messages: messages,
     });
 
-    const reply = completion.choices[0]?.message?.content ?? "抱歉，目前暫時無法回答你的問題喔。";
+    const reply = completion.choices[0]?.message?.content ?? "抱歉，今天有點忙，改天再聊～";
 
-    // 6. 儲存這次對話
+    // 儲存這次對話
     const chatsCollection = adminDb.collection(`stocks/${stockSymbol}/chats`);
     await Promise.all([
         chatsCollection.add({
