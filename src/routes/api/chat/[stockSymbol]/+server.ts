@@ -14,14 +14,14 @@ export async function POST({ request, params }) {
     const { message } = await request.json();
 
     // 1. 讀取 profile & ai_profile
-    const profileDoc = await adminDb.doc(`stocks/${stockSymbol}/profile`).get();
+    // const profileDoc = await adminDb.doc(`stocks/${stockSymbol}/profile`).get();
     const aiProfileDoc = await adminDb.doc(`stocks/${stockSymbol}/ai_profile/summary`).get();
 
-    if (!profileDoc.exists || !aiProfileDoc.exists) {
+    if (!aiProfileDoc.exists) {
         return json({ error: 'Stock not found' }, { status: 404 });
     }
 
-    const profile = profileDoc.data();
+    // const profile = profileDoc.data();
     const aiProfile = aiProfileDoc.data();
 
     // 2. 讀取歷史聊天紀錄（最近10筆）
@@ -33,10 +33,9 @@ export async function POST({ request, params }) {
 
     // 3. 組成 system prompt
     const systemPrompt = `
-你是「${profile.name}」（${profile.industry}產業），股票代碼：${stockSymbol}，上市於 ${profile.market}。
+你是「${aiProfile.name}」（${profile.industry}產業）
 你的個性描述是：「${aiProfile.description}」。
 你的標籤有：${(aiProfile.tags || []).join('、')}。
-基本介紹：${profile.long_business_summary}
 
 用「股票本人」的口吻，真誠、有個性地回應使用者提問。
 `;
